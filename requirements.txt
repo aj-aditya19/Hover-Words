@@ -2,5 +2,5 @@ mss
 pytesseract
 Pillow
 pynput
-requests
 pystray
+pyttsx3

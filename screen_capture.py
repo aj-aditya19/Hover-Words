@@ -5,12 +5,6 @@ import config
 
 
 def capture_region(center_x: int, center_y: int):
-    """
-    Grabs a small screenshot centered on (center_x, center_y).
-    Returns (PIL.Image, region_left, region_top) so callers can map
-    OCR box coordinates (which are relative to the image) back to
-    absolute screen coordinates.
-    """
     left = center_x - config.CAPTURE_WIDTH // 2
     top = center_y - config.CAPTURE_HEIGHT // 2
 

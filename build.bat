@@ -14,6 +14,7 @@ pyinstaller ^
     --onefile ^
     --noconsole ^
     --add-data "vendor\tesseract;vendor\tesseract" ^
+    --add-data "offline_dictionary.db;." ^
     main.py
 
 echo.

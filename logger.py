@@ -4,8 +4,6 @@ import sys
 
 
 def _log_dir():
-    """Return a writable per-user folder for logs, e.g.
-    C:\\Users\\<you>\\AppData\\Local\\HoverDictionary"""
     base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
     path = os.path.join(base, "HoverDictionary")
     os.makedirs(path, exist_ok=True)
@@ -15,7 +13,7 @@ def _log_dir():
 def get_logger():
     logger = logging.getLogger("hover_dictionary")
     if logger.handlers:
-        return logger  # already configured
+        return logger
 
     logger.setLevel(logging.INFO)
     log_path = os.path.join(_log_dir(), "hover-dictionary.log")
@@ -26,8 +24,6 @@ def get_logger():
     )
     logger.addHandler(file_handler)
 
-    # Also print to console when one exists (dev mode / python main.py),
-    # but stay silent when frozen with --noconsole (sys.stdout is None then).
     if sys.stdout is not None:
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))

@@ -17,8 +17,6 @@ log = get_logger()
 
 
 def find_closest_word(words, offset_x, offset_y, cursor_x, cursor_y):
-    """Given OCR word boxes (relative to captured image) and the absolute
-    cursor position, find whichever word's center is closest to the cursor."""
     best = None
     best_dist = None
 
@@ -33,9 +31,16 @@ def find_closest_word(words, offset_x, offset_y, cursor_x, cursor_y):
     return best
 
 
-def hover_worker(root: tk.Tk, tooltip: Tooltip, x: int, y: int):
-    """Runs off the main thread: capture -> OCR -> lookup. Schedules the
-    actual UI update back onto the main thread via root.after()."""
+def show_tooltip_and_track(tooltip: Tooltip, state: dict, lock: threading.Lock,
+                            x: int, y: int, word: str, definition):
+    tooltip.show(x, y, word, definition)
+    bbox = tooltip.get_bbox(padding=config.TOOLTIP_PADDING)
+    with lock:
+        state["tooltip_bbox"] = bbox
+
+
+def hover_worker(root: tk.Tk, tooltip: Tooltip, state: dict, lock: threading.Lock,
+                  x: int, y: int):
     try:
         image, offset_x, offset_y = capture_region(x, y)
         words = get_words_with_boxes(image)
@@ -49,9 +54,9 @@ def hover_worker(root: tk.Tk, tooltip: Tooltip, x: int, y: int):
             return
 
         definition = get_definition(clean_word)
-        root.after(0, tooltip.show, x, y, clean_word, definition)
+        root.after(0, show_tooltip_and_track, tooltip, state, lock, x, y, clean_word, definition)
 
-    except Exception as exc:  # noqa: BLE001 - keep the background loop alive
+    except Exception as exc:
         log.warning(f"lookup error: {exc}")
 
 
@@ -59,15 +64,13 @@ def main():
     log.info("Hover Dictionary starting up.")
 
     root = tk.Tk()
-    root.withdraw()  # we never show the root window itself
+    root.withdraw()
     tooltip = Tooltip(root)
 
-    state = {"pos": None, "last_move": time.time(), "fired": False}
+    state = {"pos": None, "last_move": time.time(), "fired": False, "tooltip_bbox": None}
     lock = threading.Lock()
 
     def request_quit():
-        # Called from the tray icon's own thread; hand off to the main
-        # thread since tkinter isn't safe to touch from other threads.
         root.after(0, root.destroy)
 
     tray = TrayApp(on_quit=request_quit)
@@ -78,6 +81,14 @@ def main():
             state["pos"] = (x, y)
             state["last_move"] = time.time()
             state["fired"] = False
+            bbox = state["tooltip_bbox"]
+
+        if bbox is not None:
+            x1, y1, x2, y2 = bbox
+            if not (x1 <= x <= x2 and y1 <= y <= y2):
+                with lock:
+                    state["tooltip_bbox"] = None
+                root.after(0, tooltip.hide)
 
     listener = mouse.Listener(on_move=on_move)
     listener.daemon = True
@@ -96,7 +107,7 @@ def main():
                 state["fired"] = True
                 x, y = pos
                 threading.Thread(
-                    target=hover_worker, args=(root, tooltip, x, y), daemon=True
+                    target=hover_worker, args=(root, tooltip, state, lock, x, y), daemon=True
                 ).start()
         root.after(100, poll)
 

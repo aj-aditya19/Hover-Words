@@ -13,10 +13,13 @@ a word — works over *any* app: PDFs, e-books, images of text, etc.
    word's position.
 4. It finds the word closest to your cursor, skips it if it's too
    short or a very common word (the, and, is...), and otherwise looks
-   it up via the free [dictionaryapi.dev](https://dictionaryapi.dev)
-   API.
+   it up in a **bundled offline dictionary database** — no internet
+   connection needed for definitions.
 5. A small popup near your cursor shows the word, part of speech,
-   and definition, then fades away after a few seconds.
+   and definition, with a 🔊 speaker button to hear the word spoken
+   aloud (offline text-to-speech). The popup has **no fixed timer** —
+   it stays open as long as you want and only closes once you actually
+   move the mouse away from it.
 
 ## Setup (Windows)
 
@@ -54,10 +57,35 @@ Open `config.py`:
 - `HOVER_DELAY` — how long the mouse must stay still before it triggers (seconds).
 - `CAPTURE_WIDTH` / `CAPTURE_HEIGHT` — size of the screen region grabbed around the cursor. Bigger = more context but slower OCR.
 - `MIN_WORD_LENGTH` — ignores words shorter than this.
-- `TOOLTIP_MS` — how long the popup stays visible.
+- `HIDE_MOVE_THRESHOLD` — how many pixels the cursor must move away from the popup before it closes. Lower = closes sooner on small movements; higher = more forgiving of small hand jitter.
 
 You can also edit `common_words.py` to add/remove words you never
 want it to bother looking up.
+
+## Offline dictionary
+
+This app needs no internet access to look up words. It bundles
+`offline_dictionary.db` — a SQLite database built from **Wiktionary**
+data via the [open-dictionary](https://github.com/mhollingshead/open-dictionary)
+project. It covers **~263,000 English words**, including modern
+vocabulary, part of speech, and example sentences — not just archaic
+terms.
+
+**Only Tesseract OCR and TTS need to work locally** (both already do)
+— nothing in this app calls the internet anymore.
+
+**Known limitation:** very recent slang/brand-new coinages (e.g.
+internet-era words that Wiktionary hasn't documented) may still be
+missing, but coverage of genuinely "hard"/uncommon vocabulary —
+academic, literary, scientific — is very strong.
+
+**If you ever want to rebuild the database:**
+```bash
+curl -L -o open-dict.zip https://codeload.github.com/mhollingshead/open-dictionary/zip/refs/heads/main
+unzip open-dict.zip
+python build_offline_dictionary.py open-dictionary-main/api
+```
+This regenerates `offline_dictionary.db` (~39 MB) in the project folder.
 
 ## Tray icon
 
@@ -103,7 +131,10 @@ pip install -r requirements.txt
 build.bat
 ```
 This runs PyInstaller and produces `dist\HoverDictionary.exe` — a
-single file with Python and all dependencies baked in.
+single file with Python, all dependencies, and the offline dictionary
+database baked in. Make sure `offline_dictionary.db` exists in the
+project folder before running this (see "Offline dictionary" section
+above if it's missing).
 
 **Step 3 — Build the installer.**
 - Install Inno Setup (free): https://jrsoftware.org/isdl.php

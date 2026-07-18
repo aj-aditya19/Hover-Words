@@ -8,11 +8,6 @@ if config.TESSERACT_CMD:
 
 
 def get_words_with_boxes(image: Image.Image):
-    """
-    Runs OCR on the given image and returns a list of dicts:
-    {'text', 'left', 'top', 'width', 'height'} -- all coordinates are
-    relative to the top-left of `image`.
-    """
     data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
     words = []
     n = len(data["text"])

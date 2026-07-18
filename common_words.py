@@ -1,11 +1,3 @@
-"""
-A small set of very common English words. We skip these when deciding
-whether to look a word up, so the tooltip only appears for words that
-are actually likely to be 'hard'. This is intentionally not exhaustive -
-tune it to your taste, or swap it for a proper frequency list later
-(e.g. the `wordfreq` package) if you want smarter filtering.
-"""
-
 COMMON_WORDS = {
     "the", "and", "for", "are", "but", "not", "you", "all", "any", "can",
     "had", "her", "was", "one", "our", "out", "day", "get", "has", "him",

@@ -5,7 +5,6 @@ import pystray
 
 
 def _make_icon_image(paused: bool) -> Image.Image:
-    """Draws a simple 'D' badge icon; greyed out when paused."""
     size = 64
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -18,11 +17,6 @@ def _make_icon_image(paused: bool) -> Image.Image:
 
 
 class TrayApp:
-    """
-    Wraps a pystray.Icon so the app has a visible tray presence with
-    Pause/Resume and Quit controls, instead of running invisibly with
-    no way for the user to stop or pause it.
-    """
 
     def __init__(self, on_quit):
         self.paused = False
@@ -57,7 +51,6 @@ class TrayApp:
             return self.paused
 
     def run_detached(self):
-        """Starts the tray icon's event loop in a background thread."""
         thread = threading.Thread(target=self.icon.run, daemon=True)
         thread.start()
         return thread
