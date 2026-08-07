@@ -5,6 +5,11 @@ import sqlite3
 
 
 def _resource_path(relative_path: str) -> str:
+    """
+    Resolves a path to a bundled resource, whether running from source
+    or as a PyInstaller-frozen exe (where bundled files are extracted
+    under sys._MEIPASS at runtime).
+    """
     if hasattr(sys, "_MEIPASS"):
         base = sys._MEIPASS
     else:
@@ -14,6 +19,15 @@ def _resource_path(relative_path: str) -> str:
 
 _DB_PATH = _resource_path("offline_dictionary.db")
 
+# Simple in-memory cache so repeat lookups of the same word (or hovering
+# back and forth) don't hit the database again.
+_cache = {}
+
+# Some dictionary entries (inflected word forms) just point to a base
+# word instead of giving an actual meaning, e.g. "simple past tense of
+# awake" for "awoke", or "plural of cat" for "cats". When we hit one of
+# these, we resolve it to the base word's real definition instead, so
+# the tooltip always shows an actual meaning.
 _FORM_OF_PATTERNS = [
     re.compile(r"^simple past tense and past participle of ([a-zA-Z\-]+)\.?$", re.I),
     re.compile(r"^simple past tense of ([a-zA-Z\-]+)\.?$", re.I),
@@ -32,6 +46,9 @@ _FORM_OF_PATTERNS = [
 
 
 def _resolve_form_reference(definition_text: str):
+    """If `definition_text` is just a grammatical pointer to another
+    word (e.g. 'simple past tense of awake'), returns that base word.
+    Otherwise returns None."""
     text = definition_text.strip()
     for pattern in _FORM_OF_PATTERNS:
         match = pattern.match(text)
@@ -54,6 +71,16 @@ def _lookup_row(clean_word: str):
 
 
 def get_definition(word: str, _depth: int = 0):
+    """
+    Looks up a word in the bundled offline dictionary (no internet
+    required - sourced from Wiktionary via the open-dictionary
+    project, ~260k English words). Returns a dict: {'word', 'phonetic',
+    'part_of_speech', 'definition', 'example'} or None if not found.
+
+    If the stored entry is just a grammatical reference to another
+    word (e.g. an inflected form), this follows it once to return the
+    base word's real meaning instead.
+    """
     clean = word.strip().strip(".,;:!?\"'()[]{}").upper()
     if not clean:
         return None
