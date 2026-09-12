@@ -61,7 +61,7 @@ def _lookup_row(clean_word: str):
     try:
         conn = sqlite3.connect(_DB_PATH)
         row = conn.execute(
-            "SELECT part_of_speech, definition, example FROM words WHERE word = ?",
+            "SELECT definition FROM words WHERE word = ?",
             (clean_word,),
         ).fetchone()
         conn.close()
@@ -73,9 +73,9 @@ def _lookup_row(clean_word: str):
 def get_definition(word: str, _depth: int = 0):
     """
     Looks up a word in the bundled offline dictionary (no internet
-    required - sourced from Wiktionary via the open-dictionary
-    project, ~260k English words). Returns a dict: {'word', 'phonetic',
-    'part_of_speech', 'definition', 'example'} or None if not found.
+    required - a slimmed-down, cleaned-up build sourced from Wiktionary,
+    with only real words and simple/basic definitions kept). Returns a
+    dict: {'word', 'phonetic', 'definition'} or None if not found.
 
     If the stored entry is just a grammatical reference to another
     word (e.g. an inflected form), this follows it once to return the
@@ -92,7 +92,7 @@ def get_definition(word: str, _depth: int = 0):
     row = _lookup_row(clean)
 
     if row is not None:
-        part_of_speech, definition, example = row
+        (definition,) = row
 
         base_word = _resolve_form_reference(definition) if _depth == 0 else None
         if base_word and base_word.upper() != clean:
@@ -101,18 +101,14 @@ def get_definition(word: str, _depth: int = 0):
                 result = {
                     "word": word,
                     "phonetic": "",
-                    "part_of_speech": resolved["part_of_speech"],
                     "definition": resolved["definition"],
-                    "example": resolved["example"],
                 }
 
         if result is None:
             result = {
                 "word": word,
                 "phonetic": "",
-                "part_of_speech": part_of_speech or "",
                 "definition": definition,
-                "example": example or "",
             }
 
     _cache[clean] = result
