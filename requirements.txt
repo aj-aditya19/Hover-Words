@@ -1,0 +1,6 @@
+mss
+pytesseract
+Pillow
+pynput
+pystray
+pyttsx3
